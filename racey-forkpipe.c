@@ -32,6 +32,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/syscall.h>
 
 int MaxLoop = 50000;
 #define MAX_ELEM 64
@@ -88,7 +89,9 @@ void ReaderProcess(int threadId)
    * should change the final value of mix
    */
   for (r = 1; r > 0; ) {
+    syscall(318);
     r = read(inputs[threadId][RD], buffer, sizeof buffer);
+    syscall(319);
     num = mix(num, r);
     if (r > 0) {
       for (k = 0; k < r / sizeof(*numbers); k++)
@@ -130,7 +133,9 @@ void WriterProcess(int threadId)
       buffer[k] = num;
     }
     const int target = (num % NumProcs) + 1;
+    syscall(318);
     r = write(inputs[target][WR], buffer, sizeof buffer);
+    syscall(319);
     num = mix(num, r);
   }
 
