@@ -19,7 +19,6 @@
 #define OUTPUT_FILE "./output.txt"
 
 int client_fds[WORKER_NUM];
-struct sockaddr_in echo_addr[WORKER_NUM]; /* Client address */
 int client_idx;
 int output_fd;
 pthread_mutex_t client_fds_lock;
