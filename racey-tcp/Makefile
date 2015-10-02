@@ -5,15 +5,16 @@
 #
 
 LDFLAGS = -lpthread
+CFLAGS = -static
 TARGETS = racey-tcp-client racey-tcp-server
 
 all: $(TARGETS)
 
 racey-tcp-client:
-	gcc -o $@ racey-tcp-client.c $(LDFLAGS)
+	gcc $(CFLAGS) -o $@ racey-tcp-client.c $(LDFLAGS)
 
 racey-tcp-server:
-	gcc -o $@ racey-tcp-server.c $(LDFLAGS)
+	gcc $(CFLAGS) -o $@ racey-tcp-server.c $(LDFLAGS)
 
 clean:
 	rm -rf $(TARGETS)
