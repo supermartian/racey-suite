@@ -1,5 +1,5 @@
 /*
- * racey-tcp-server.c
+ * racey-tcp-client.c
  * Copyright (C) 2015 Yuzhong Wen <wyz2014@vt.edu>
  *
  * Distributed under terms of the MIT license.
