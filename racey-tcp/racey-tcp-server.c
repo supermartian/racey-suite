@@ -41,6 +41,7 @@ void* racey_worker(void* data)
 				fd = client_fds[client_idx];
 				client_fds[client_idx] = -1;
 				client_idx --;
+				pthread_mutex_unlock(&client_fds_lock);
 				break;
 			}
 			pthread_mutex_unlock(&client_fds_lock);
@@ -53,6 +54,8 @@ void* racey_worker(void* data)
 			write(output_fd, buf, n);
 			pthread_mutex_unlock(&file_lock);
 		}
+		printf("I'm done with this\n");
+		close(fd);
 	}
 }
 
@@ -134,9 +137,9 @@ int main(int argc, char **argv)
 			usleep(100);
 		}
 		/* Feed the socket to workers */
-		printf("Connection put into position %d\n", client_idx);
 		client_idx ++;
 		client_fds[client_idx] = client_fd;
+		printf("Connection put into position %d\n", client_idx);
 		pthread_mutex_unlock(&client_fds_lock);
 	}
 }
