@@ -15,7 +15,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 
-#define WORKER_NUM 20
+#define WORKER_NUM 110
 #define OUTPUT_FILE "./output.txt"
 
 const char quote[64][256] = {
@@ -51,29 +51,28 @@ void* racey_worker(void* data)
 
 	printf("Ready to connect to %s:%d\n", server_ip, server_port);
 
-	if ((fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-		return;
-	}
-
-	memset(&server_addr, 0, sizeof(server_addr));     /* Zero out structure */
-	server_addr.sin_family      = AF_INET;             /* Internet address family */
-	server_addr.sin_addr.s_addr = inet_addr(server_ip);   /* Server IP address */
-	server_addr.sin_port        = htons(server_port); /* Server port */
-
-	if (connect(fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
-		printf("Couldn't connect to %s\n", server_ip);
-		return;
-	}
-
 	/* Send Plup Fiction to the someone who loves it */
 	while (quote[n][0] != 0) {
+		if ((fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+			return;
+		}
+
+		memset(&server_addr, 0, sizeof(server_addr));     /* Zero out structure */
+		server_addr.sin_family      = AF_INET;             /* Internet address family */
+		server_addr.sin_addr.s_addr = inet_addr(server_ip);   /* Server IP address */
+		server_addr.sin_port        = htons(server_port); /* Server port */
+
+		if (connect(fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
+			printf("Couldn't connect to %s\n", server_ip);
+			return;
+		}
+
 		write(fd, quote[n], strlen(quote[n]) + 1);
 		n++;
+		close(fd);
 	}
 
 	printf("Done.\n");
-
-	close(fd);
 }
 
 int main(int argc, char **argv)
