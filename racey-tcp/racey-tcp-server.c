@@ -130,15 +130,18 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		pthread_mutex_lock(&client_fds_lock);
 		printf("Incoming connection\n");
-		while (client_idx >= WORKER_NUM) {
-			usleep(100);
+		while (1) {
+			pthread_mutex_lock(&client_fds_lock);
+			if (client_idx < WORKER_NUM) {
+				/* Feed the socket to workers */
+				client_idx ++;
+				client_fds[client_idx] = client_fd;
+				pthread_mutex_unlock(&client_fds_lock);
+				break;
+			}
+			pthread_mutex_unlock(&client_fds_lock);
 		}
-		/* Feed the socket to workers */
-		client_idx ++;
-		client_fds[client_idx] = client_fd;
 		printf("Connection put into position %d\n", client_idx);
-		pthread_mutex_unlock(&client_fds_lock);
 	}
 }
