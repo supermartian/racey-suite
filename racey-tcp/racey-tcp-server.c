@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <sys/syscall.h>
 
 #define WORKER_NUM 10
 #define OUTPUT_FILE "./output.txt"
@@ -21,6 +22,7 @@
 int client_fds[WORKER_NUM];
 int client_idx;
 int output_fd;
+int barrier;
 pthread_mutex_t client_fds_lock;
 pthread_mutex_t file_lock;
 
@@ -31,28 +33,38 @@ void* racey_worker(void* data)
 	char buf[256];
 	printf("Thread into position\n");
 
+	while (barrier == 0) {}
+
 	for (;;) {
 		/* Waiting for an availiable socket */
 		for (;;) {
+			syscall(318);
 			pthread_mutex_lock(&client_fds_lock);
+			syscall(319);
 			if (client_fds[client_idx] > 0) {
 				printf("Worker got a connection %d\n", client_idx);
 				fd = client_fds[client_idx];
+				syscall(320);
 				client_fds[client_idx] = -1;
 				client_idx --;
 				pthread_mutex_unlock(&client_fds_lock);
 				break;
 			}
 			pthread_mutex_unlock(&client_fds_lock);
+			syscall(320);
 		}
 
 		/* Write the shit to the file */
-		while ((n = read(fd, buf, sizeof(buf))) > 0) {
-			printf("%d read\n", n);
+		do {
+			syscall(318);
+			n = read(fd, buf, sizeof(buf));
+			syscall(319);
+			syscall(318);
 			pthread_mutex_lock(&file_lock);
+			syscall(319);
 			write(output_fd, buf, n);
 			pthread_mutex_unlock(&file_lock);
-		}
+		} while (n > 0);
 		printf("I'm done with this\n");
 		close(fd);
 	}
@@ -108,6 +120,7 @@ int main(int argc, char **argv)
 	pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
 
 	client_idx = -1;
+	barrier = 0;
 	for (i = 0; i < WORKER_NUM; i++) {
 		client_fds[i] = -1;
 		if (pthread_create(&threads[i], &attr, racey_worker, NULL) < 0) {
@@ -115,6 +128,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
+	barrier = 1;
 
 	if (listen(server_fd, 10) < 0) {
 		printf("Couldn't listen to socket, abort\n");
@@ -124,23 +138,31 @@ int main(int argc, char **argv)
 	for (;;) {
 		/* Accept whatever is coming to me */
 		client_len = sizeof(client_addr);
+		syscall(318);
 		if ((client_fd = accept(server_fd, (struct sockaddr *) &client_addr,
 						&client_len)) < 0) {
 			printf("Couldn't do shit, abort\n");
+			syscall(319);
 			return 1;
 		}
+		syscall(319);
+		syscall(320);
 
 		printf("Incoming connection\n");
 		while (1) {
+			syscall(318);
 			pthread_mutex_lock(&client_fds_lock);
+			syscall(319);
 			if (client_idx < WORKER_NUM) {
 				/* Feed the socket to workers */
+				syscall(320);
 				client_idx ++;
 				client_fds[client_idx] = client_fd;
 				pthread_mutex_unlock(&client_fds_lock);
 				break;
 			}
 			pthread_mutex_unlock(&client_fds_lock);
+			syscall(320);
 		}
 		printf("Connection put into position %d\n", client_idx);
 	}
